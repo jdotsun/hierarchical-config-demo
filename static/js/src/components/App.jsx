@@ -9,6 +9,13 @@ const App = () => {
   const [configValues, setConfigValues] = useState([]);
   const [scopeTypes, setScopeTypes] = useState([]);
   
+  // State for persistent resolve configuration
+  const [resolveState, setResolveState] = useState({
+    configItemKey: '',
+    properties: [],
+    result: null
+  });
+  
   // Fetch initial data
   useEffect(() => {
     fetchScopeTypes();
@@ -172,6 +179,8 @@ const App = () => {
                 configItems={configItems}
                 scopeTypes={scopeTypes}
                 showToast={showToast}
+                resolveState={resolveState}
+                setResolveState={setResolveState}
               />
             )}
           </div>

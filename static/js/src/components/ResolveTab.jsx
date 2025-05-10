@@ -1,51 +1,69 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-const ResolveTab = ({ configItems, scopeTypes, showToast }) => {
-  const [configItemKey, setConfigItemKey] = useState('');
-  const [properties, setProperties] = useState([]);
-  const [result, setResult] = useState(null);
+const ResolveTab = ({ configItems, scopeTypes, showToast, resolveState, setResolveState }) => {
+  // Using parent component's state for persistence between tab switches
   
   const handleAddProperty = () => {
     // Filter out 'default' scope type since it's not applicable for properties
     const filteredScopeTypes = scopeTypes.filter(type => type.name !== 'default');
     
     if (filteredScopeTypes.length > 0) {
-      setProperties([...properties, {
-        key: filteredScopeTypes[0].name,
-        value: ''
-      }]);
+      setResolveState(prev => ({
+        ...prev,
+        properties: [...prev.properties, {
+          key: filteredScopeTypes[0].name,
+          value: ''
+        }]
+      }));
     }
   };
   
   const handlePropertyChange = (index, field, value) => {
-    const updatedProperties = [...properties];
+    const updatedProperties = [...resolveState.properties];
     updatedProperties[index][field] = value;
-    setProperties(updatedProperties);
+    setResolveState(prev => ({
+      ...prev,
+      properties: updatedProperties
+    }));
   };
   
   const handleRemoveProperty = (index) => {
-    const updatedProperties = [...properties];
+    const updatedProperties = [...resolveState.properties];
     updatedProperties.splice(index, 1);
-    setProperties(updatedProperties);
+    setResolveState(prev => ({
+      ...prev,
+      properties: updatedProperties
+    }));
+  };
+  
+  const handleReset = () => {
+    if (confirm('Are you sure you want to reset all configuration values and results?')) {
+      setResolveState({
+        configItemKey: '',
+        properties: [],
+        result: null
+      });
+      showToast('Configuration reset successfully', 'info');
+    }
   };
   
   const handleSubmit = (e) => {
     e.preventDefault();
     
     // Validate form
-    if (!configItemKey) {
+    if (!resolveState.configItemKey) {
       showToast('Please select a configuration item', 'warning');
       return;
     }
     
-    if (properties.length === 0) {
+    if (resolveState.properties.length === 0) {
       showToast('Please add at least one property', 'warning');
       return;
     }
     
     // Convert properties array to object for API
     const propertiesObj = {};
-    properties.forEach(prop => {
+    resolveState.properties.forEach(prop => {
       if (prop.key && prop.value) {
         propertiesObj[prop.key] = prop.value;
       }
@@ -63,7 +81,7 @@ const ResolveTab = ({ configItems, scopeTypes, showToast }) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        config_item_key: configItemKey,
+        config_item_key: resolveState.configItemKey,
         properties: propertiesObj
       })
     })
@@ -77,11 +95,17 @@ const ResolveTab = ({ configItems, scopeTypes, showToast }) => {
     })
     .then(data => {
       // Display result
-      setResult(data.value);
+      setResolveState(prev => ({
+        ...prev,
+        result: data.value
+      }));
     })
     .catch(error => {
       showToast(error.message, 'danger');
-      setResult(null);
+      setResolveState(prev => ({
+        ...prev,
+        result: null
+      }));
     });
   };
   
@@ -90,11 +114,19 @@ const ResolveTab = ({ configItems, scopeTypes, showToast }) => {
       <div className="row mt-4">
         <div className="col-md-6">
           <div className="card">
-            <div className="card-header">
+            <div className="card-header d-flex justify-content-between align-items-center">
               <h5 className="mb-0">
                 <i className="bi bi-check2-circle me-2"></i>
                 Resolve Configuration Value
               </h5>
+              <button 
+                type="button" 
+                className="btn btn-sm btn-outline-danger"
+                onClick={handleReset}
+              >
+                <i className="bi bi-trash me-1"></i>
+                Reset
+              </button>
             </div>
             <div className="card-body">
               <form onSubmit={handleSubmit}>
@@ -103,8 +135,8 @@ const ResolveTab = ({ configItems, scopeTypes, showToast }) => {
                   <select 
                     className="form-select" 
                     id="resolveConfigItemKey" 
-                    value={configItemKey}
-                    onChange={(e) => setConfigItemKey(e.target.value)}
+                    value={resolveState.configItemKey}
+                    onChange={(e) => setResolveState(prev => ({...prev, configItemKey: e.target.value}))}
                     required
                   >
                     <option value="" disabled>-- Select a configuration item --</option>
@@ -119,7 +151,7 @@ const ResolveTab = ({ configItems, scopeTypes, showToast }) => {
                 <div className="mb-3">
                   <label className="form-label">Object Properties</label>
                   <div id="propertiesContainer">
-                    {properties.map((prop, index) => (
+                    {resolveState.properties.map((prop, index) => (
                       <div className="row property-row mb-2" key={index}>
                         <div className="col-5">
                           <select
@@ -175,7 +207,7 @@ const ResolveTab = ({ configItems, scopeTypes, showToast }) => {
         </div>
         
         <div className="col-md-6">
-          {result !== null && (
+          {resolveState.result !== null && (
             <div className="card">
               <div className="card-header bg-success text-white">
                 <h5 className="mb-0">
@@ -186,13 +218,13 @@ const ResolveTab = ({ configItems, scopeTypes, showToast }) => {
               <div className="card-body">
                 <h4 className="text-center">Resolved Value:</h4>
                 <div className="alert alert-success text-center">
-                  <span className="fs-4">{result}</span>
+                  <span className="fs-4">{resolveState.result}</span>
                 </div>
               </div>
             </div>
           )}
           
-          <div className={`card ${result !== null ? 'mt-3' : ''}`}>
+          <div className={`card ${resolveState.result !== null ? 'mt-3' : ''}`}>
             <div className="card-header bg-info text-white">
               <h5 className="mb-0">
                 <i className="bi bi-info-circle me-2"></i>
