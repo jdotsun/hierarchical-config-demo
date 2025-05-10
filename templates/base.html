@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration Management System</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-gear-fill me-2"></i>
+                Configuration Management System
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">
+                            <i class="bi bi-question-circle me-1"></i>
+                            Help
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="container main-container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="helpModalLabel">
+                        <i class="bi bi-question-circle me-2"></i>
+                        How to Use the Configuration Management System
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h5>Understanding Scope Hierarchy</h5>
+                    <p>
+                        The system uses a hierarchical scope-based resolution to find the most appropriate configuration value.
+                        The scope hierarchy (from most local to most global):
+                    </p>
+                    <ol>
+                        <li><strong>Account</strong> - Most specific, highest priority</li>
+                        <li><strong>Model</strong></li>
+                        <li><strong>Model Family</strong></li>
+                        <li><strong>Model Provider</strong></li>
+                        <li><strong>Default</strong> - Least specific, lowest priority</li>
+                    </ol>
+
+                    <hr>
+
+                    <h5>Managing Configuration Items</h5>
+                    <p>
+                        Configuration items are the keys that you want to configure values for. 
+                        Each item has a key, description, and value type.
+                    </p>
+                    <ul>
+                        <li>To create a configuration item, use the "Create Configuration Item" form.</li>
+                        <li>To delete a configuration item, click the delete button next to the item in the table.</li>
+                    </ul>
+
+                    <hr>
+
+                    <h5>Setting Configuration Values</h5>
+                    <p>
+                        Configuration values are assigned to specific scopes. 
+                        When resolving a configuration value, the system will try to find the most 
+                        local scope that matches the object's properties.
+                    </p>
+                    <ul>
+                        <li>To set a configuration value, use the "Set Configuration Value" form.</li>
+                        <li>When using a "default" scope type, you don't need to provide a scope value.</li>
+                        <li>For other scope types, the scope value should match the corresponding property of the object.</li>
+                    </ul>
+
+                    <hr>
+
+                    <h5>Resolving Configuration Values</h5>
+                    <p>
+                        When you resolve a configuration value, the system will find the best match based on the 
+                        object's properties and the scope hierarchy.
+                    </p>
+                    <ul>
+                        <li>Select a configuration item to resolve.</li>
+                        <li>Add properties to describe the object.</li>
+                        <li>Click "Resolve" to find the most appropriate value.</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3"></div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
