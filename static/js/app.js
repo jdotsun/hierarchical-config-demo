@@ -320,7 +320,7 @@ function handleConfigValueSubmit(e) {
     
     // Validate form
     if (!configItemKey || !scopeType || !value) {
-        console.log('Missing required fields');
+        console.log('Missing required fields:', { configItemKey, scopeType, value });
         showToast('Please fill out all required fields', 'warning');
         return;
     }
