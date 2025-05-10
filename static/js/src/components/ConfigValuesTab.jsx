@@ -1,102 +1,183 @@
 import React, { useState, useEffect } from 'react';
 
 const ConfigValuesTab = ({ configItems, configValues, scopeTypes, fetchConfigValues, showToast }) => {
-  const [formData, setFormData] = useState({
+  // State for editable grid
+  const [gridData, setGridData] = useState([]);
+  const [editRow, setEditRow] = useState(null);
+  const [editData, setEditData] = useState({});
+  const [newRow, setNewRow] = useState({
     config_item_key: '',
     scope_type: '',
     scope_value: '',
-    value: ''
+    value: '',
+    isNew: true
   });
   
-  const [showScopeValue, setShowScopeValue] = useState(true);
-  
-  // Effect to update scope value visibility and requirement based on scope type
+  // Update grid data when config values change
   useEffect(() => {
-    if (formData.scope_type === 'default') {
-      setShowScopeValue(false);
-    } else {
-      setShowScopeValue(true);
-    }
-  }, [formData.scope_type]);
+    setGridData(configValues);
+  }, [configValues]);
   
-  const handleChange = (e) => {
+  // When edit scope type changes to default, clear scope value
+  useEffect(() => {
+    if (editData.scope_type === 'default') {
+      setEditData(prev => ({
+        ...prev,
+        scope_value: ''
+      }));
+    }
+  }, [editData.scope_type]);
+  
+  // Start editing a row
+  const handleEdit = (index) => {
+    setEditRow(index);
+    setEditData({ ...gridData[index] });
+  };
+  
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditRow(null);
+    setEditData({});
+  };
+  
+  // Handle input change for editing
+  const handleEditChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setEditData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  // Handle input change for new row
+  const handleNewRowChange = (e) => {
+    const { name, value } = e.target;
+    setNewRow(prev => ({
       ...prev,
       [name]: value
     }));
     
-    // Special handling for scope_type change
+    // Special handling for scope_type change to default
     if (name === 'scope_type' && value === 'default') {
-      setFormData(prev => ({
+      setNewRow(prev => ({
         ...prev,
         scope_value: ''
       }));
     }
   };
   
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    console.log('Submitting config value:', formData);
-    
+  // Save edited row
+  const handleSaveEdit = () => {
     // Validate form
-    if (!formData.config_item_key || !formData.scope_type || !formData.value) {
-      console.log('Missing required fields');
+    if (!editData.config_item_key || !editData.scope_type || !editData.value) {
       showToast('Please fill out all required fields', 'warning');
       return;
     }
     
     // For default scope type, scope value should be null
-    let scope_value = formData.scope_value;
-    if (formData.scope_type === 'default') {
+    let scope_value = editData.scope_value;
+    if (editData.scope_type === 'default') {
       scope_value = null;
     } else if (!scope_value) {
-      console.log('Missing scope value for non-default scope type');
       showToast('Scope value is required for non-default scope types', 'warning');
       return;
     }
     
-    // Create config value
+    // Update the config value via API
     fetch('/api/config-values', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        config_item_key: formData.config_item_key,
-        scope_type: formData.scope_type,
+        config_item_key: editData.config_item_key,
+        scope_type: editData.scope_type,
         scope_value: scope_value,
-        value: formData.value
+        value: editData.value
       })
     })
     .then(response => {
       if (!response.ok) {
         return response.json().then(data => {
-          throw new Error(data.error || 'Failed to set configuration value');
+          throw new Error(data.error || 'Failed to save configuration value');
         });
       }
       return response.json();
     })
-    .then(data => {
-      // Reset form
-      setFormData({
-        config_item_key: '',
-        scope_type: '',
-        scope_value: '',
-        value: ''
-      });
+    .then(() => {
+      // Reset edit state
+      setEditRow(null);
+      setEditData({});
       
       // Refresh data
       fetchConfigValues();
       
-      showToast('Configuration value set successfully', 'success');
+      showToast('Configuration value saved successfully', 'success');
     })
     .catch(error => {
       showToast(error.message, 'danger');
     });
   };
   
+  // Save new row
+  const handleSaveNewRow = () => {
+    // Validate form
+    if (!newRow.config_item_key || !newRow.scope_type || !newRow.value) {
+      showToast('Please fill out all required fields', 'warning');
+      return;
+    }
+    
+    // For default scope type, scope value should be null
+    let scope_value = newRow.scope_value;
+    if (newRow.scope_type === 'default') {
+      scope_value = null;
+    } else if (!scope_value) {
+      showToast('Scope value is required for non-default scope types', 'warning');
+      return;
+    }
+    
+    // Add the config value via API
+    fetch('/api/config-values', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        config_item_key: newRow.config_item_key,
+        scope_type: newRow.scope_type,
+        scope_value: scope_value,
+        value: newRow.value
+      })
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Failed to add configuration value');
+        });
+      }
+      return response.json();
+    })
+    .then(() => {
+      // Reset new row form
+      setNewRow({
+        config_item_key: '',
+        scope_type: '',
+        scope_value: '',
+        value: '',
+        isNew: true
+      });
+      
+      // Refresh data
+      fetchConfigValues();
+      
+      showToast('Configuration value added successfully', 'success');
+    })
+    .catch(error => {
+      showToast(error.message, 'danger');
+    });
+  };
+  
+  // Delete a config value
   const handleDelete = (configItemKey, scopeType, scopeValue) => {
     if (confirm('Are you sure you want to delete this configuration value?')) {
       fetch('/api/config-values', {
@@ -131,94 +212,17 @@ const ConfigValuesTab = ({ configItems, configValues, scopeTypes, fetchConfigVal
     }
   };
   
+  // Check if scope value field should be shown based on scope type
+  const shouldShowScopeValue = (scopeType) => {
+    return scopeType !== 'default';
+  };
+  
   return (
     <div className="tab-pane fade show active" role="tabpanel">
       <div className="row mt-4">
-        <div className="col-md-5">
+        <div className="col-12">
           <div className="card">
-            <div className="card-header">
-              <h5 className="mb-0">
-                <i className="bi bi-sliders me-2"></i>
-                Set Configuration Value
-              </h5>
-            </div>
-            <div className="card-body">
-              <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label htmlFor="valueConfigItemKey" className="form-label">Configuration Item</label>
-                  <select 
-                    className="form-select" 
-                    id="valueConfigItemKey" 
-                    name="config_item_key"
-                    value={formData.config_item_key}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="" disabled>-- Select a configuration item --</option>
-                    {configItems.map(item => (
-                      <option key={item.key} value={item.key}>
-                        {item.key}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="valueScopeType" className="form-label">Scope Type</label>
-                  <select 
-                    className="form-select" 
-                    id="valueScopeType" 
-                    name="scope_type"
-                    value={formData.scope_type}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="" disabled>-- Select a scope type --</option>
-                    {scopeTypes.map(type => (
-                      <option key={type.name} value={type.name}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {showScopeValue && (
-                  <div className="mb-3">
-                    <label htmlFor="valueScopeValue" className="form-label">Scope Value</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      id="valueScopeValue" 
-                      name="scope_value"
-                      value={formData.scope_value}
-                      onChange={handleChange}
-                      required={formData.scope_type !== 'default'}
-                    />
-                    <div className="form-text">Value to match against the object's property</div>
-                  </div>
-                )}
-                <div className="mb-3">
-                  <label htmlFor="configValueValue" className="form-label">Configuration Value</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    id="configValueValue" 
-                    name="value"
-                    value={formData.value}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary">
-                  <i className="bi bi-save me-1"></i>
-                  Set Value
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-        
-        <div className="col-md-7">
-          <div className="card">
-            <div className="card-header">
+            <div className="card-header d-flex justify-content-between align-items-center">
               <h5 className="mb-0">
                 <i className="bi bi-sliders me-2"></i>
                 Configuration Values
@@ -237,25 +241,173 @@ const ConfigValuesTab = ({ configItems, configValues, scopeTypes, fetchConfigVal
                     </tr>
                   </thead>
                   <tbody>
-                    {configValues.length === 0 ? (
+                    {/* New row form */}
+                    <tr className="table-info">
+                      <td>
+                        <select 
+                          className="form-select form-select-sm" 
+                          name="config_item_key"
+                          value={newRow.config_item_key}
+                          onChange={handleNewRowChange}
+                        >
+                          <option value="" disabled>-- Select --</option>
+                          {configItems.map(item => (
+                            <option key={item.key} value={item.key}>
+                              {item.key}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <select 
+                          className="form-select form-select-sm" 
+                          name="scope_type"
+                          value={newRow.scope_type}
+                          onChange={handleNewRowChange}
+                        >
+                          <option value="" disabled>-- Select --</option>
+                          {scopeTypes.map(type => (
+                            <option key={type.name} value={type.name}>
+                              {type.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        {shouldShowScopeValue(newRow.scope_type) ? (
+                          <input 
+                            type="text" 
+                            className="form-control form-control-sm" 
+                            name="scope_value"
+                            value={newRow.scope_value}
+                            onChange={handleNewRowChange}
+                            placeholder="Scope value"
+                          />
+                        ) : (
+                          <i>global</i>
+                        )}
+                      </td>
+                      <td>
+                        <input 
+                          type="text" 
+                          className="form-control form-control-sm" 
+                          name="value"
+                          value={newRow.value}
+                          onChange={handleNewRowChange}
+                          placeholder="Value"
+                        />
+                      </td>
+                      <td>
+                        <button 
+                          className="btn btn-sm btn-success"
+                          onClick={handleSaveNewRow}
+                        >
+                          <i className="bi bi-plus-circle"></i> Add
+                        </button>
+                      </td>
+                    </tr>
+                    
+                    {/* Existing rows */}
+                    {gridData.length === 0 ? (
                       <tr>
                         <td colSpan="5" className="text-center">No configuration values defined</td>
                       </tr>
                     ) : (
-                      configValues.map((value, index) => (
+                      gridData.map((row, index) => (
                         <tr key={index}>
-                          <td>{value.config_item_key}</td>
-                          <td>{value.scope_type}</td>
-                          <td>{value.scope_value || <i>global</i>}</td>
-                          <td>{value.value}</td>
-                          <td>
-                            <button 
-                              className="btn btn-sm btn-danger"
-                              onClick={() => handleDelete(value.config_item_key, value.scope_type, value.scope_value)}
-                            >
-                              <i className="bi bi-trash"></i> Delete
-                            </button>
-                          </td>
+                          {editRow === index ? (
+                            <>
+                              <td>
+                                <select 
+                                  className="form-select form-select-sm" 
+                                  name="config_item_key"
+                                  value={editData.config_item_key}
+                                  onChange={handleEditChange}
+                                >
+                                  {configItems.map(item => (
+                                    <option key={item.key} value={item.key}>
+                                      {item.key}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td>
+                                <select 
+                                  className="form-select form-select-sm" 
+                                  name="scope_type"
+                                  value={editData.scope_type}
+                                  onChange={handleEditChange}
+                                >
+                                  {scopeTypes.map(type => (
+                                    <option key={type.name} value={type.name}>
+                                      {type.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td>
+                                {shouldShowScopeValue(editData.scope_type) ? (
+                                  <input 
+                                    type="text" 
+                                    className="form-control form-control-sm" 
+                                    name="scope_value"
+                                    value={editData.scope_value || ''}
+                                    onChange={handleEditChange}
+                                  />
+                                ) : (
+                                  <i>global</i>
+                                )}
+                              </td>
+                              <td>
+                                <input 
+                                  type="text" 
+                                  className="form-control form-control-sm" 
+                                  name="value"
+                                  value={editData.value}
+                                  onChange={handleEditChange}
+                                />
+                              </td>
+                              <td>
+                                <div className="btn-group">
+                                  <button 
+                                    className="btn btn-sm btn-success"
+                                    onClick={handleSaveEdit}
+                                  >
+                                    <i className="bi bi-save"></i>
+                                  </button>
+                                  <button 
+                                    className="btn btn-sm btn-secondary"
+                                    onClick={handleCancelEdit}
+                                  >
+                                    <i className="bi bi-x-circle"></i>
+                                  </button>
+                                </div>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td>{row.config_item_key}</td>
+                              <td>{row.scope_type}</td>
+                              <td>{row.scope_value || <i>global</i>}</td>
+                              <td>{row.value}</td>
+                              <td>
+                                <div className="btn-group">
+                                  <button 
+                                    className="btn btn-sm btn-primary"
+                                    onClick={() => handleEdit(index)}
+                                  >
+                                    <i className="bi bi-pencil"></i>
+                                  </button>
+                                  <button 
+                                    className="btn btn-sm btn-danger"
+                                    onClick={() => handleDelete(row.config_item_key, row.scope_type, row.scope_value)}
+                                  >
+                                    <i className="bi bi-trash"></i>
+                                  </button>
+                                </div>
+                              </td>
+                            </>
+                          )}
                         </tr>
                       ))
                     )}
