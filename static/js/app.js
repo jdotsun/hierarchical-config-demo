@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up event listeners
     setupEventListeners();
+    
+    // Make sure to initialize the scope value field visibility
+    setTimeout(updateScopeValueFieldVisibility, 500);
 });
 
 // Setup all event listeners
@@ -191,11 +194,14 @@ function updateScopeTypeSelects() {
 function updateScopeValueFieldVisibility() {
     const scopeTypeSelect = document.getElementById('scopeType');
     const scopeValueGroup = document.getElementById('scopeValueGroup');
+    const scopeValueInput = document.getElementById('scopeValue');
     
     if (scopeTypeSelect.value === 'default') {
         scopeValueGroup.style.display = 'none';
+        scopeValueInput.removeAttribute('required');
     } else {
         scopeValueGroup.style.display = 'block';
+        scopeValueInput.setAttribute('required', '');
     }
 }
 
@@ -284,8 +290,16 @@ function handleConfigValueSubmit(e) {
     let scopeValue = document.getElementById('scopeValue').value;
     const value = document.getElementById('configValue').value;
     
+    console.log('Submitting config value:', {
+        configItemKey, 
+        scopeType, 
+        scopeValue, 
+        value
+    });
+    
     // Validate form
     if (!configItemKey || !scopeType || !value) {
+        console.log('Missing required fields');
         showToast('Please fill out all required fields', 'warning');
         return;
     }
@@ -294,6 +308,7 @@ function handleConfigValueSubmit(e) {
     if (scopeType === 'default') {
         scopeValue = null;
     } else if (!scopeValue) {
+        console.log('Missing scope value for non-default scope type');
         showToast('Scope value is required for non-default scope types', 'warning');
         return;
     }
