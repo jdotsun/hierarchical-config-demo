@@ -12,7 +12,7 @@ const App = () => {
   // State for persistent resolve configuration
   const [resolveState, setResolveState] = useState({
     configItemKey: '',
-    properties: [],
+    propertyValues: {},  // Changed to an object with scope type as key
     result: null
   });
   

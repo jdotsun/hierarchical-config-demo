@@ -3,36 +3,16 @@ import React from 'react';
 const ResolveTab = ({ configItems, scopeTypes, showToast, resolveState, setResolveState }) => {
   // Using parent component's state for persistence between tab switches
   
-  const handleAddProperty = () => {
-    // Filter out 'default' scope type since it's not applicable for properties
-    const filteredScopeTypes = scopeTypes.filter(type => type.name !== 'default');
-    
-    if (filteredScopeTypes.length > 0) {
-      setResolveState(prev => ({
-        ...prev,
-        properties: [...prev.properties, {
-          key: filteredScopeTypes[0].name,
-          value: ''
-        }]
-      }));
-    }
-  };
+  // Get the scope types excluding 'default' since it's not applicable as a property
+  const propertyTypes = scopeTypes.filter(type => type.name !== 'default');
   
-  const handlePropertyChange = (index, field, value) => {
-    const updatedProperties = [...resolveState.properties];
-    updatedProperties[index][field] = value;
+  const handlePropertyChange = (scopeType, value) => {
     setResolveState(prev => ({
       ...prev,
-      properties: updatedProperties
-    }));
-  };
-  
-  const handleRemoveProperty = (index) => {
-    const updatedProperties = [...resolveState.properties];
-    updatedProperties.splice(index, 1);
-    setResolveState(prev => ({
-      ...prev,
-      properties: updatedProperties
+      propertyValues: {
+        ...prev.propertyValues,
+        [scopeType]: value
+      }
     }));
   };
   
@@ -40,7 +20,7 @@ const ResolveTab = ({ configItems, scopeTypes, showToast, resolveState, setResol
     if (confirm('Are you sure you want to reset all configuration values and results?')) {
       setResolveState({
         configItemKey: '',
-        properties: [],
+        propertyValues: {},
         result: null
       });
       showToast('Configuration reset successfully', 'info');
@@ -56,21 +36,16 @@ const ResolveTab = ({ configItems, scopeTypes, showToast, resolveState, setResol
       return;
     }
     
-    if (resolveState.properties.length === 0) {
-      showToast('Please add at least one property', 'warning');
-      return;
-    }
-    
-    // Convert properties array to object for API
+    // Filter out empty property values
     const propertiesObj = {};
-    resolveState.properties.forEach(prop => {
-      if (prop.key && prop.value) {
-        propertiesObj[prop.key] = prop.value;
+    Object.entries(resolveState.propertyValues).forEach(([key, value]) => {
+      if (value && value.trim() !== '') {
+        propertiesObj[key] = value;
       }
     });
     
     if (Object.keys(propertiesObj).length === 0) {
-      showToast('Please fill in all property fields', 'warning');
+      showToast('Please fill in at least one property field', 'warning');
       return;
     }
     
@@ -150,51 +125,23 @@ const ResolveTab = ({ configItems, scopeTypes, showToast, resolveState, setResol
                 
                 <div className="mb-3">
                   <label className="form-label">Object Properties</label>
-                  <div id="propertiesContainer">
-                    {resolveState.properties.map((prop, index) => (
-                      <div className="row property-row mb-2" key={index}>
-                        <div className="col-5">
-                          <select
-                            className="form-select"
-                            value={prop.key}
-                            onChange={(e) => handlePropertyChange(index, 'key', e.target.value)}
-                          >
-                            {scopeTypes.filter(type => type.name !== 'default').map(type => (
-                              <option key={type.name} value={type.name}>
-                                {type.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="col-5">
+                  <div className="card mb-3">
+                    <div className="card-body bg-light">
+                      <p className="small text-muted mb-2">Fill in the values for the properties you want to include in the resolution. Leave blank to exclude.</p>
+                      {propertyTypes.map(type => (
+                        <div className="mb-3" key={type.name}>
+                          <label className="form-label">{type.name}</label>
                           <input
                             type="text"
                             className="form-control"
-                            placeholder="Value"
-                            value={prop.value}
-                            onChange={(e) => handlePropertyChange(index, 'value', e.target.value)}
+                            placeholder={`Enter ${type.name} value...`}
+                            value={resolveState.propertyValues[type.name] || ''}
+                            onChange={(e) => handlePropertyChange(type.name, e.target.value)}
                           />
                         </div>
-                        <div className="col-2">
-                          <button
-                            type="button"
-                            className="btn btn-danger"
-                            onClick={() => handleRemoveProperty(index)}
-                          >
-                            <i className="bi bi-dash-circle"></i>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-secondary mt-2"
-                    onClick={handleAddProperty}
-                  >
-                    <i className="bi bi-plus-circle me-1"></i>
-                    Add Property
-                  </button>
                 </div>
                 
                 <button type="submit" className="btn btn-primary">
