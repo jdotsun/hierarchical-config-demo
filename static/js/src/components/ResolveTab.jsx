@@ -125,23 +125,21 @@ const ResolveTab = ({ configItems, scopeTypes, showToast, resolveState, setResol
                 
                 <div className="mb-3">
                   <label className="form-label">Object Properties</label>
-                  <div className="card mb-3">
-                    <div className="card-body bg-light">
-                      <p className="small text-muted mb-2">Fill in the values for the properties you want to include in the resolution. Leave blank to exclude.</p>
-                      {propertyTypes.map(type => (
-                        <div className="mb-3" key={type.name}>
-                          <label className="form-label">{type.name}</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder={`Enter ${type.name} value...`}
-                            value={resolveState.propertyValues[type.name] || ''}
-                            onChange={(e) => handlePropertyChange(type.name, e.target.value)}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                  <div className="mb-2">
+                    <p className="small text-muted">Fill in the values for the properties you want to include in the resolution. Leave blank to exclude.</p>
                   </div>
+                  {propertyTypes.map(type => (
+                    <div className="mb-3" key={type.name}>
+                      <label className="form-label">{type.name}</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder={`Enter ${type.name} value...`}
+                        value={resolveState.propertyValues[type.name] || ''}
+                        onChange={(e) => handlePropertyChange(type.name, e.target.value)}
+                      />
+                    </div>
+                  ))}
                 </div>
                 
                 <button type="submit" className="btn btn-primary">
