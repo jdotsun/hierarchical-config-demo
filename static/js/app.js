@@ -213,6 +213,16 @@ function updateConfigItemSelects() {
         const currentValue = select.value;
         select.innerHTML = '';
         
+        // Add a default prompt option if there are items to select
+        if (configItems.length > 0) {
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "-- Select a configuration item --";
+            defaultOption.selected = true;
+            defaultOption.disabled = true;
+            select.appendChild(defaultOption);
+        }
+        
         configItems.forEach(item => {
             const option = document.createElement('option');
             option.value = item.key;
@@ -223,8 +233,19 @@ function updateConfigItemSelects() {
         // Restore previous selection if possible
         if (currentValue && select.querySelector(`option[value="${currentValue}"]`)) {
             select.value = currentValue;
+        } else if (configItems.length > 0) {
+            // Select the first actual item if no previous selection or invalid
+            select.value = configItems[0].key;
         }
     });
+    
+    // Log the current state of the selects for debugging
+    console.log('Config item selects updated. Current values:', 
+        Array.from(configItemSelects).map(select => ({
+            id: select.id,
+            value: select.value
+        }))
+    );
 }
 
 // Handle config item form submission
