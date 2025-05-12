@@ -61,28 +61,11 @@ for scope_data in default_scope_types:
     else:
         config_manager.add_scope_type(existing_scope)
 
-# Define sample config items if they don't exist yet
-default_config_items = [
-    {"key": "min_acct_size", "description": "Minimum account size", "value_type": "number"},
-    {"key": "default_timeout", "description": "Default timeout in seconds", "value_type": "number"},
-    {"key": "welcome_message", "description": "Welcome message for users", "value_type": "string"}
-]
-
-# Add config items to database if they don't exist
-for item_data in default_config_items:
-    existing_item = db_session.query(ConfigItem).filter_by(key=item_data["key"]).first()
-    if not existing_item:
-        config_item = ConfigItem(
-            key=item_data["key"], 
-            description=item_data["description"], 
-            value_type=item_data["value_type"]
-        )
-        db_session.add(config_item)
-        db_session.commit()
-        config_manager.add_config_item(config_item)
-        logging.debug(f"Added config item to database: {config_item.key}")
-    else:
-        config_manager.add_config_item(existing_item)
+# Load all existing config items from the database
+existing_items = db_session.query(ConfigItem).all()
+for item in existing_items:
+    config_manager.add_config_item(item)
+    logging.debug(f"Loaded config item from database: {item.key}")
 
 # Load existing config values from database, but only for config items we already know about
 existing_values = db_session.query(ConfigValue).all()
