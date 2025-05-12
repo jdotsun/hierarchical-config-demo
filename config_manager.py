@@ -168,6 +168,9 @@ class ConfigManager:
         # Get all scope types in order of priority (local to global)
         scope_types = self.get_scope_types()
         
+        # Get the config item to determine its value type
+        config_item = self.config_items[config_item_key]
+        
         # Try to find a matching config value for each scope type
         for scope_type in scope_types:
             scope_type_name = scope_type.name
@@ -183,18 +186,52 @@ class ConfigManager:
             if scope_type_name == "default":
                 key = (config_item_key, scope_type_name, None)
                 if key in self.config_values:
+                    value = self.config_values[key].value
                     logging.debug(f"Resolved config value for {config_item_key} using default scope")
-                    return self.config_values[key].value
+                    
+                    # Convert value based on config item's value_type
+                    return self._convert_value(value, config_item.value_type)
             # For other scope types, we need to match the property value
             elif prop_value:
                 key = (config_item_key, scope_type_name, prop_value)
                 if key in self.config_values:
+                    value = self.config_values[key].value
                     logging.debug(f"Resolved config value for {config_item_key} using {scope_type_name} scope with value {prop_value}")
-                    return self.config_values[key].value
+                    
+                    # Convert value based on config item's value_type
+                    return self._convert_value(value, config_item.value_type)
         
         # No matching config value found
         logging.debug(f"No config value found for {config_item_key}")
         return None
+        
+    def _convert_value(self, value: Any, value_type: str) -> Any:
+        """
+        Convert a value to the appropriate type based on the config item's value_type.
+        
+        Args:
+            value: The value to convert
+            value_type: The type to convert to ('string', 'number', or 'blob')
+            
+        Returns:
+            The converted value
+        """
+        if value_type == 'number':
+            try:
+                # Try to convert to float first
+                float_val = float(value)
+                # If it's a whole number, convert to int
+                if float_val.is_integer():
+                    return int(float_val)
+                return float_val
+            except (ValueError, TypeError):
+                # If conversion fails, return as is
+                return value
+        elif value_type == 'string':
+            # Ensure string values are properly returned as strings
+            return str(value)
+        # For blob or any other type, return as is
+        return value
     
     def delete_config_value(self, config_item_key: str, scope_type: str, scope_value: Optional[str]) -> bool:
         """Delete a configuration value with database persistence"""

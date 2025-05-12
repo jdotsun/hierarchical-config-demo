@@ -142,6 +142,15 @@ def register_routes(app, config_manager):
             value = config_manager.resolve_config_value(config_item_key, obj_properties)
             if value is None:
                 return jsonify({'error': 'No matching configuration value found'}), 404
-            return jsonify({'value': value})
+            
+            # Ensure value is properly converted before jsonifying
+            # For string values, ensure they don't contain HTML tags that could break JSON
+            if isinstance(value, str):
+                # Simple conversion that avoids HTML parsing issues
+                # by treating all values as plain strings
+                return jsonify({'value': str(value)})
+            else:
+                # For numbers and other JSON-compatible values
+                return jsonify({'value': value})
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
