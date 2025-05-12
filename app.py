@@ -101,8 +101,16 @@ def configure_routes():
 # Teardown app context
 @app.teardown_appcontext
 def shutdown_session(exception=None):
-    if hasattr(config_manager, 'db_session'):
+    if hasattr(config_manager, 'db_session') and config_manager.db_session is not None:
         config_manager.db_session.close()
+
+# Create a new database session for each request
+@app.before_request
+def before_request():
+    # Create a new session for this request
+    db_session = Session()
+    # Assign it to the config manager
+    config_manager.db_session = db_session
 
 # Export app and configure_routes for use in main.py
 __all__ = ['app', 'configure_routes']

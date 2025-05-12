@@ -16,10 +16,15 @@ class ScopeType(Base):
     def __eq__(self, other) -> bool:
         if not isinstance(other, ScopeType):
             return False
-        return self.name == other.name
+        # Safely handle comparison with SQLAlchemy column objects
+        name1 = str(self.name) if self.name is not None else None
+        name2 = str(other.name) if other.name is not None else None
+        return name1 == name2
 
     def __hash__(self):
-        return hash(self.name)
+        # Use string representation to avoid SQLAlchemy ColumnElement hash issues
+        name_str = str(self.name) if self.name is not None else None
+        return hash(name_str)
     
     def to_dict(self):
         return {
@@ -41,10 +46,15 @@ class ConfigItem(Base):
     def __eq__(self, other) -> bool:
         if not isinstance(other, ConfigItem):
             return False
-        return self.key == other.key
+        # Safely handle comparison with SQLAlchemy column objects
+        key1 = str(self.key) if self.key is not None else None
+        key2 = str(other.key) if other.key is not None else None
+        return key1 == key2
 
     def __hash__(self):
-        return hash(self.key)
+        # Use string representation to avoid SQLAlchemy ColumnElement hash issues
+        key_str = str(self.key) if self.key is not None else None
+        return hash(key_str)
     
     def to_dict(self):
         return {
