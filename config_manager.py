@@ -1,9 +1,10 @@
 from typing import Dict, List, Optional, Union, Any
 from models import ConfigItem, ConfigValue, ScopeType, ObjectProperties
+from sqlalchemy.orm import Session
 import logging
 
 class ConfigManager:
-    """Manages configuration items, values, and scope types"""
+    """Manages configuration items, values, and scope types with database persistence"""
     
     def __init__(self):
         # Store config items by key
@@ -14,23 +15,76 @@ class ConfigManager:
         
         # Store config values by a composite key: (config_item_key, scope_type, scope_value)
         self.config_values: Dict[tuple, ConfigValue] = {}
+        
+        # Database session
+        self.db_session: Optional[Session] = None
     
     def add_scope_type(self, scope_type: ScopeType) -> None:
-        """Add a new scope type to the hierarchy"""
+        """Add a new scope type to the hierarchy with database persistence"""
+        # Store in memory
         self.scope_types[scope_type.name] = scope_type
+        
+        # If we have a database session, persist to database
+        if self.db_session:
+            # Check if this scope type already exists
+            existing_scope = self.db_session.query(ScopeType).filter_by(name=scope_type.name).first()
+            
+            if not existing_scope:
+                # Add the new scope type to the database
+                self.db_session.add(scope_type)
+                self.db_session.commit()
+                
         logging.debug(f"Added scope type: {scope_type.name} with priority {scope_type.priority}")
     
     def get_scope_types(self) -> List[ScopeType]:
         """Get all scope types sorted by priority (local to global)"""
+        # If we have a database session, get from database
+        if self.db_session:
+            try:
+                # Query all scope types from the database
+                db_scope_types = self.db_session.query(ScopeType).all()
+                
+                # Update our in-memory cache
+                for scope_type in db_scope_types:
+                    self.scope_types[scope_type.name] = scope_type
+            except Exception as e:
+                logging.error(f"Error fetching scope types from database: {e}")
+        
+        # Return sorted scope types from in-memory cache
         return sorted(self.scope_types.values(), key=lambda x: x.priority)
     
     def add_config_item(self, config_item: ConfigItem) -> None:
-        """Add a new configuration item"""
+        """Add a new configuration item with database persistence"""
+        # Store in memory
         self.config_items[config_item.key] = config_item
+        
+        # If we have a database session, persist to database
+        if self.db_session:
+            # Check if this config item already exists
+            existing_item = self.db_session.query(ConfigItem).filter_by(key=config_item.key).first()
+            
+            if not existing_item:
+                # Add the new config item to the database
+                self.db_session.add(config_item)
+                self.db_session.commit()
+                
         logging.debug(f"Added config item: {config_item.key}")
     
     def get_config_items(self) -> List[ConfigItem]:
-        """Get all configuration items"""
+        """Get all configuration items with database refresh"""
+        # If we have a database session, get from database
+        if self.db_session:
+            try:
+                # Query all config items from the database
+                db_config_items = self.db_session.query(ConfigItem).all()
+                
+                # Update our in-memory cache
+                for config_item in db_config_items:
+                    self.config_items[config_item.key] = config_item
+            except Exception as e:
+                logging.error(f"Error fetching config items from database: {e}")
+        
+        # Return config items from in-memory cache
         return list(self.config_items.values())
     
     def get_config_item(self, key: str) -> Optional[ConfigItem]:
@@ -38,7 +92,7 @@ class ConfigManager:
         return self.config_items.get(key)
     
     def set_config_value(self, config_value: ConfigValue) -> None:
-        """Set a configuration value"""
+        """Set a configuration value with database persistence"""
         # Validate that the config item exists
         if config_value.config_item_key not in self.config_items:
             raise ValueError(f"Config item '{config_value.config_item_key}' does not exist")
@@ -50,12 +104,46 @@ class ConfigManager:
         # Create a tuple key for the config value
         key = (config_value.config_item_key, config_value.scope_type, config_value.scope_value)
         
-        # Store the config value
+        # Store the config value in memory
         self.config_values[key] = config_value
+        
+        # If we have a database session, persist to the database
+        if self.db_session:
+            # Check if this config value already exists in the database
+            existing_value = self.db_session.query(ConfigValue).filter_by(
+                config_item_key=config_value.config_item_key,
+                scope_type=config_value.scope_type,
+                scope_value=config_value.scope_value
+            ).first()
+            
+            if existing_value:
+                # Update existing value
+                existing_value.value = config_value.value
+            else:
+                # Add new value
+                self.db_session.add(config_value)
+                
+            # Commit the transaction
+            self.db_session.commit()
+        
         logging.debug(f"Set config value for {key}: {config_value.value}")
     
     def get_config_values(self) -> List[ConfigValue]:
-        """Get all configuration values"""
+        """Get all configuration values with database refresh"""
+        # If we have a database session, get from database
+        if self.db_session:
+            try:
+                # Query all config values from the database
+                db_config_values = self.db_session.query(ConfigValue).all()
+                
+                # Update our in-memory cache
+                for value in db_config_values:
+                    key = (value.config_item_key, value.scope_type, value.scope_value)
+                    self.config_values[key] = value
+            except Exception as e:
+                logging.error(f"Error fetching config values from database: {e}")
+        
+        # Return config values from in-memory cache
         return list(self.config_values.values())
     
     def get_config_values_for_item(self, config_item_key: str) -> List[ConfigValue]:
@@ -109,24 +197,62 @@ class ConfigManager:
         return None
     
     def delete_config_value(self, config_item_key: str, scope_type: str, scope_value: Optional[str]) -> bool:
-        """Delete a configuration value"""
+        """Delete a configuration value with database persistence"""
         key = (config_item_key, scope_type, scope_value)
-        if key in self.config_values:
+        
+        # Delete from in-memory cache
+        found_in_memory = key in self.config_values
+        if found_in_memory:
             del self.config_values[key]
+            
+        # Delete from database if we have a session
+        found_in_db = False
+        if self.db_session:
+            # Find and delete the value in the database
+            value = self.db_session.query(ConfigValue).filter_by(
+                config_item_key=config_item_key,
+                scope_type=scope_type,
+                scope_value=scope_value
+            ).first()
+            
+            if value:
+                found_in_db = True
+                self.db_session.delete(value)
+                self.db_session.commit()
+                
+        success = found_in_memory or found_in_db
+        if success:
             logging.debug(f"Deleted config value for {key}")
-            return True
-        return False
+            
+        return success
     
     def delete_config_item(self, key: str) -> bool:
-        """Delete a configuration item and all associated values"""
-        if key in self.config_items:
-            # Delete all config values for this item
+        """Delete a configuration item and all associated values with database persistence"""
+        found_in_memory = key in self.config_items
+        
+        if found_in_memory:
+            # Delete all config values for this item from memory
             keys_to_delete = [k for k in self.config_values.keys() if k[0] == key]
             for k in keys_to_delete:
                 del self.config_values[k]
             
-            # Delete the config item
+            # Delete the config item from memory
             del self.config_items[key]
+        
+        # If we have a database session, delete from the database
+        found_in_db = False
+        if self.db_session:
+            # Find the config item
+            config_item = self.db_session.query(ConfigItem).filter_by(key=key).first()
+            
+            if config_item:
+                found_in_db = True
+                # SQLAlchemy cascade will handle deleting associated values
+                self.db_session.delete(config_item)
+                self.db_session.commit()
+        
+        success = found_in_memory or found_in_db
+        if success:
             logging.debug(f"Deleted config item: {key}")
-            return True
-        return False
+            
+        return success
