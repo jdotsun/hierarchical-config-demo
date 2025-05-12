@@ -94,6 +94,10 @@ def register_routes(app, config_manager):
             except (ValueError, TypeError):
                 return jsonify({'error': 'Invalid number value'}), 400
         
+        # Ensure value is a string to prevent HTML encoding issues
+        if not isinstance(value, (int, float)):
+            value = str(value)
+        
         config_value = ConfigValue(
             config_item_key=data['config_item_key'],
             scope_type=data['scope_type'],

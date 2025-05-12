@@ -84,11 +84,15 @@ for item_data in default_config_items:
     else:
         config_manager.add_config_item(existing_item)
 
-# Load existing config values from database
+# Load existing config values from database, but only for config items we already know about
 existing_values = db_session.query(ConfigValue).all()
 for value in existing_values:
-    config_manager.set_config_value(value)
-    logging.debug(f"Loaded config value from database: {value.config_item_key}/{value.scope_type}/{value.scope_value}")
+    if value.config_item_key in [item.key for item in config_manager.get_config_items()]:
+        try:
+            config_manager.set_config_value(value)
+            logging.debug(f"Loaded config value from database: {value.config_item_key}/{value.scope_type}/{value.scope_value}")
+        except Exception as e:
+            logging.error(f"Error loading config value: {e}")
 
 # Close the database session
 db_session.close()
