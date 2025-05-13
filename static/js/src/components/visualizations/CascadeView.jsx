@@ -233,6 +233,11 @@ const CascadeView = ({ configItemKey }) => {
 
   return (
     <div className="cascade-view-container" style={{ width: "100%", height: "100%" }}>
+      <h6 className="text-center mb-3">
+        <span className="badge bg-secondary">
+          Configuration: {configItemKey}
+        </span>
+      </h6>
       <svg 
         ref={svgRef} 
         style={{ 
