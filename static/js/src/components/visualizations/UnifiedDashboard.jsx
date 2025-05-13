@@ -46,6 +46,7 @@ const UnifiedDashboard = () => {
   const fetchCascadeData = async () => {
     try {
       setLoading(true);
+      console.log("Fetching cascade data for config item:", selectedConfigItem);
       
       // Fetch comparison data for charts
       const comparisonResponse = await fetch(`/api/visualization/comparison?config_item_key=${encodeURIComponent(selectedConfigItem)}`);
@@ -53,13 +54,17 @@ const UnifiedDashboard = () => {
         throw new Error('Failed to fetch comparison data');
       }
       const comparisonData = await comparisonResponse.json();
+      console.log("Received comparison data:", comparisonData);
       
       // Render visualizations
+      console.log("Rendering cascade tree visualization");
       renderCascadeTree(comparisonData);
+      console.log("Rendering value distribution visualization");
       renderValueDistribution(comparisonData);
       
       setLoading(false);
     } catch (err) {
+      console.error("Error fetching or rendering data:", err);
       setError(err.message);
       setLoading(false);
     }
@@ -71,7 +76,9 @@ const UnifiedDashboard = () => {
     // Clear the SVG
     d3.select(cascadeTreeRef.current).selectAll("*").remove();
 
-    const width = 600;
+    // Set dimensions for the visualization
+    const containerWidth = cascadeTreeRef.current.parentElement.offsetWidth;
+    const width = Math.min(containerWidth, 900);  // Responsive but with max width
     const height = 400;
     const margin = { top: 20, right: 20, bottom: 30, left: 100 };
     const innerWidth = width - margin.left - margin.right;
@@ -186,7 +193,7 @@ const UnifiedDashboard = () => {
         .attr("text-anchor", "middle")
         .attr("fill", "white")
         .style("font-size", "10px")
-        .text(d => d.scope_value);
+        .text(d => d.scope_value === "global" ? "Default" : d.scope_value);
     });
 
     // Add cascade arrows to show the resolution order
@@ -417,8 +424,8 @@ const UnifiedDashboard = () => {
                         <h5 className="mb-0">Configuration Cascade View</h5>
                       </div>
                       <div className="card-body">
-                        <div className="visualization-container">
-                          <svg ref={cascadeTreeRef} width="100%" height="400"></svg>
+                        <div className="visualization-container" style={{ minHeight: "400px", width: "100%" }}>
+                          <svg ref={cascadeTreeRef} width="100%" height="400" style={{ display: "block", margin: "0 auto" }}></svg>
                         </div>
                         <p className="text-muted mt-2">
                           This visualization shows how configuration values cascade from global (top) to local (bottom) scopes.
