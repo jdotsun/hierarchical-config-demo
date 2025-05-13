@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { CascadeView } from './';
+import { CascadeView, HierarchyTreeView, ScopeOverlapView } from './';
 
 // Configuration profile types for comparison
 const PROFILE_TYPES = {
   COMPLEX: 'complex',
   SIMPLE: 'simple',
   ALL_DEFAULT: 'all_default'
+};
+
+// Visualization types
+const VISUALIZATION_TYPES = {
+  CASCADE: 'cascade',
+  TREE: 'tree',
+  OVERLAP: 'overlap'
 };
 
 // Helper function to get profile description
@@ -26,6 +33,7 @@ const VisualizationsTab = () => {
   const [configItems, setConfigItems] = useState([]);
   const [selectedConfigItem1, setSelectedConfigItem1] = useState('');
   const [selectedConfigItem2, setSelectedConfigItem2] = useState('');
+  const [selectedConfigItem3, setSelectedConfigItem3] = useState('');
   const [sideComparisonEnabled, setSideComparisonEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -51,6 +59,7 @@ const VisualizationsTab = () => {
         // Set initial selections to different items if possible
         setSelectedConfigItem1(data[0].key);
         setSelectedConfigItem2(data.length > 1 ? data[1].key : data[0].key);
+        setSelectedConfigItem3(data.length > 2 ? data[2].key : data[0].key);
       }
       setLoading(false);
     } catch (error) {
@@ -122,12 +131,13 @@ const VisualizationsTab = () => {
               </label>
             </div>
             
+            {/* Cascade View Section */}
             <div className="row mb-4">
               <div className={sideComparisonEnabled ? "col-md-6" : "col-md-12"}>
                 <div className="card h-100">
                   <div className="card-header bg-info text-white">
                     <div className="d-flex justify-content-between align-items-center">
-                      <h5 className="mb-0">Configuration View {sideComparisonEnabled ? "1" : ""}</h5>
+                      <h5 className="mb-0">Cascade View {sideComparisonEnabled ? "1" : ""}</h5>
                     </div>
                   </div>
                   <div className="card-body">
@@ -161,7 +171,7 @@ const VisualizationsTab = () => {
                   <div className="card h-100">
                     <div className="card-header bg-info text-white">
                       <div className="d-flex justify-content-between align-items-center">
-                        <h5 className="mb-0">Configuration View 2</h5>
+                        <h5 className="mb-0">Cascade View 2</h5>
                       </div>
                     </div>
                     <div className="card-body">
@@ -192,15 +202,93 @@ const VisualizationsTab = () => {
               )}
             </div>
             
+            {/* Hierarchy Tree View Section */}
+            <div className="row mb-4">
+              <div className="col-12">
+                <div className="card">
+                  <div className="card-header bg-info text-white">
+                    <h5 className="mb-0">Hierarchy Tree View</h5>
+                  </div>
+                  <div className="card-body">
+                    <p>
+                      This tree visualization shows the hierarchical relationship between different scope types and values.
+                      The root node represents the configuration item, with branches showing the resolution path through scope types.
+                    </p>
+                    
+                    <div className="form-group mb-3">
+                      <label htmlFor="configItemSelect3" className="form-label">Select Configuration Item</label>
+                      <select 
+                        id="configItemSelect3" 
+                        className="form-select" 
+                        value={selectedConfigItem3}
+                        onChange={(e) => setSelectedConfigItem3(e.target.value)}
+                      >
+                        {configItems.map(item => (
+                          <option key={item.key} value={item.key}>
+                            {item.key} - {item.description}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {selectedConfigItem3 && (
+                      <div className="hierarchy-tree-container" style={{ minHeight: "500px" }}>
+                        <HierarchyTreeView configItemKey={selectedConfigItem3} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Scope Overlap View Section */}
+            <div className="row mb-4">
+              <div className="col-12">
+                <div className="card">
+                  <div className="card-header bg-info text-white">
+                    <h5 className="mb-0">Scope Overlap View</h5>
+                  </div>
+                  <div className="card-body">
+                    <p>
+                      This visualization shows how different scope types overlap and interact for a configuration item.
+                      Each circle represents a scope type, with the configuration values shown within each scope.
+                    </p>
+                    
+                    <div className="form-group mb-3">
+                      <label htmlFor="configItemSelect3" className="form-label">Select Configuration Item</label>
+                      <select 
+                        id="configItemSelect3" 
+                        className="form-select" 
+                        value={selectedConfigItem3}
+                        onChange={(e) => setSelectedConfigItem3(e.target.value)}
+                      >
+                        {configItems.map(item => (
+                          <option key={item.key} value={item.key}>
+                            {item.key} - {item.description}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {selectedConfigItem3 && (
+                      <div className="scope-overlap-container" style={{ minHeight: "500px" }}>
+                        <ScopeOverlapView configItemKey={selectedConfigItem3} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             <div className="alert alert-info">
-              <h5>Understanding the Visualization</h5>
-              <p>This visualization shows how configuration values cascade from global (top) to local (bottom) scopes.</p>
+              <h5>Understanding the Visualizations</h5>
+              <p>These visualizations show configuration data in different ways to help understand the hierarchical nature of configuration resolution:</p>
               <ul>
-                <li>Each row represents a scope type (account, model, model family, etc.)</li>
-                <li>Colors indicate scope priority: red = more local (higher priority), yellow = more global (lower priority)</li>
-                <li>During resolution, values from more local scopes (top) override values from more global scopes (bottom)</li>
+                <li><strong>Cascade View:</strong> Shows how values cascade from global (bottom) to local (top) scopes along a linear axis.</li>
+                <li><strong>Hierarchy Tree:</strong> Shows configuration as a branching tree with the root node being the config item and branches showing the scope hierarchy.</li>
+                <li><strong>Scope Overlap:</strong> Visualizes how different scope types overlap and interact using a Venn diagram-like approach.</li>
               </ul>
-              <p>By comparing different configuration items side by side, you can see patterns in how configurations cascade differently based on their complexity and structure.</p>
+              <p>By comparing different configurations and visualization types, you can gain insights into how the configuration system works and how values flow through the hierarchy.</p>
             </div>
           </div>
         </div>

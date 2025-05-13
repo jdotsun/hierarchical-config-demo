@@ -7,57 +7,113 @@ def register_visualization_routes(app, config_manager):
     @app.route('/api/visualization/hierarchy', methods=['GET'])
     def get_hierarchy_data():
         """Get hierarchical data for tree visualization"""
+        config_item_key = request.args.get('config_item_key')
+        
         # Get all scope types in order of priority
         scope_types = config_manager.get_scope_types()
         
-        # Get all config items
-        config_items = config_manager.get_config_items()
+        # If a specific config item is requested, return data just for that item
+        if config_item_key:
+            # Get the specified config item
+            config_item = config_manager.get_config_item(config_item_key)
+            if not config_item:
+                return jsonify({"error": f"Config item '{config_item_key}' not found"}), 404
+            
+            # Get values for this config item
+            config_values = config_manager.get_config_values_for_item(config_item_key)
+            
+            # Organize data for this specific config item
+            hierarchy_data = {
+                "config_item": {
+                    "key": config_item.key,
+                    "description": config_item.description,
+                    "value_type": config_item.value_type
+                },
+                "scope_types": []
+            }
+            
+            # Group values by scope type
+            for scope_type in scope_types:
+                scope_values = [v for v in config_values if v.scope_type == scope_type.name]
+                
+                if scope_values:
+                    scope_data = {
+                        "name": scope_type.name,
+                        "priority": scope_type.priority,
+                        "values": []
+                    }
+                    
+                    for value in scope_values:
+                        # Convert the value to the appropriate type
+                        converted_value = config_manager._convert_value(value.value, config_item.value_type)
+                        
+                        scope_data["values"].append({
+                            "scope_value": value.scope_value if value.scope_value else "global",
+                            "value": converted_value
+                        })
+                    
+                    hierarchy_data["scope_types"].append(scope_data)
+                else:
+                    # Include empty scope types for completeness
+                    hierarchy_data["scope_types"].append({
+                        "name": scope_type.name,
+                        "priority": scope_type.priority,
+                        "values": []
+                    })
+            
+            return jsonify(hierarchy_data)
         
-        # Get all config values
-        config_values = config_manager.get_config_values()
-        
-        # Organize data in a hierarchical structure
-        hierarchy_data = {
-            "name": "Configuration Hierarchy",
-            "children": []
-        }
-        
-        # Group by config item
-        for config_item in config_items:
-            item_node = {
-                "name": config_item.key,
-                "description": config_item.description,
-                "value_type": config_item.value_type,
+        # If no specific config item, return the full hierarchy
+        else:
+            # Get all config items
+            config_items = config_manager.get_config_items()
+            
+            # Get all config values
+            config_values = config_manager.get_config_values()
+            
+            # Organize data in a hierarchical structure
+            hierarchy_data = {
+                "name": "Configuration Hierarchy",
                 "children": []
             }
             
-            # Get values for this config item
-            item_values = [v for v in config_values if v.config_item_key == config_item.key]
-            
-            # Group by scope type
-            for scope_type in scope_types:
-                scope_values = [v for v in item_values if v.scope_type == scope_type.name]
+            # Group by config item
+            for config_item in config_items:
+                item_node = {
+                    "name": config_item.key,
+                    "description": config_item.description,
+                    "value_type": config_item.value_type,
+                    "children": []
+                }
                 
-                if scope_values:
-                    scope_node = {
-                        "name": scope_type.name,
-                        "priority": scope_type.priority,
-                        "children": []
-                    }
+                # Get values for this config item
+                item_values = [v for v in config_values if v.config_item_key == config_item.key]
+                
+                # Group by scope type
+                for scope_type in scope_types:
+                    scope_values = [v for v in item_values if v.scope_type == scope_type.name]
                     
-                    # Add values for this scope
-                    for value in scope_values:
-                        value_node = {
-                            "name": value.scope_value if value.scope_value else "global",
-                            "value": value.value
+                    if scope_values:
+                        scope_node = {
+                            "name": scope_type.name,
+                            "priority": scope_type.priority,
+                            "children": []
                         }
-                        scope_node["children"].append(value_node)
-                    
-                    item_node["children"].append(scope_node)
+                        
+                        # Add values for this scope
+                        for value in scope_values:
+                            converted_value = config_manager._convert_value(value.value, config_item.value_type)
+                            value_node = {
+                                "name": value.scope_value if value.scope_value else "global",
+                                "value": converted_value
+                            }
+                            scope_node["children"].append(value_node)
+                        
+                        item_node["children"].append(scope_node)
+                
+                hierarchy_data["children"].append(item_node)
             
-            hierarchy_data["children"].append(item_node)
-        
-        return jsonify(hierarchy_data)
+            return jsonify(hierarchy_data)
     
     @app.route('/api/visualization/comparison', methods=['GET'])
     def get_comparison_data():

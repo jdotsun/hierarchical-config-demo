@@ -5,3 +5,5 @@ export { default as HeatmapView } from './HeatmapView';
 export { default as ImpactAnalysis } from './ImpactAnalysis';
 export { default as UnifiedDashboard } from './UnifiedDashboard';
 export { default as CascadeView } from './CascadeView';
+export { default as HierarchyTreeView } from './HierarchyTreeView';
+export { default as ScopeOverlapView } from './ScopeOverlapView';
