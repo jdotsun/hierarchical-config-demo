@@ -49,6 +49,52 @@
     z-index: 1050;
 }
 
+/* Visualization styles */
+.visualization-container {
+    min-height: 400px;
+}
+
+/* D3 visualization specific styles */
+.node circle {
+    fill-opacity: 0.8;
+}
+
+.node text {
+    font-size: 12px;
+}
+
+.node--internal text {
+    text-shadow: 0 1px 0 #000, 0 -1px 0 #000, 1px 0 0 #000, -1px 0 0 #000;
+}
+
+.link {
+    fill: none;
+    stroke: #555;
+    stroke-opacity: 0.4;
+    stroke-width: 1.5px;
+}
+
+/* Heatmap specific styles */
+.heatmap-cell:hover {
+    stroke: #000;
+    stroke-width: 2px;
+}
+
+/* Chart container */
+.chart-container {
+    position: relative;
+    margin: auto;
+    height: 400px;
+    width: 100%;
+}
+
+/* SVG container for scrollable charts */
+.svg-container {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .card-header h3 {
@@ -58,5 +104,9 @@
     .btn-sm {
         padding: 0.25rem 0.5rem;
         font-size: 0.75rem;
+    }
+    
+    .visualization-container {
+        min-height: 300px;
     }
 }

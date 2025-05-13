@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ConfigItemsTab from './ConfigItemsTab';
 import ConfigValuesTab from './ConfigValuesTab';
 import ResolveTab from './ResolveTab';
+import { VisualizationsTab } from './visualizations';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('items');
@@ -151,6 +152,16 @@ const App = () => {
                 Resolve Configuration
               </button>
             </li>
+            <li className="nav-item" role="presentation">
+              <button 
+                className={`nav-link ${activeTab === 'visualizations' ? 'active' : ''}`}
+                onClick={() => setActiveTab('visualizations')}
+                type="button"
+              >
+                <i className="bi bi-graph-up me-1"></i>
+                Visualizations
+              </button>
+            </li>
           </ul>
           
           {/* Tab content */}
@@ -182,6 +193,10 @@ const App = () => {
                 resolveState={resolveState}
                 setResolveState={setResolveState}
               />
+            )}
+            
+            {activeTab === 'visualizations' && (
+              <VisualizationsTab />
             )}
           </div>
         </div>
