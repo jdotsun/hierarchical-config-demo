@@ -1,7 +1,10 @@
 from flask import request, jsonify, render_template
 from models import ConfigItem, ConfigValue, ObjectProperties
+from visualization_routes import register_visualization_routes
 
 def register_routes(app, config_manager):
+    # Register visualization routes
+    register_visualization_routes(app, config_manager)
     @app.route('/')
     def index():
         """Render the main page"""
