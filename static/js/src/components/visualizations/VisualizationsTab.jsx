@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { CascadeView, HierarchyTreeView, ScopeOverlapView } from './';
+import { 
+  CascadeView, 
+  HierarchyTreeView, 
+  ScopeOverlapView,
+  ResolutionAnimationView
+} from './';
 
 // Configuration profile types for comparison
 const PROFILE_TYPES = {
@@ -12,7 +17,8 @@ const PROFILE_TYPES = {
 const VISUALIZATION_TYPES = {
   CASCADE: 'cascade',
   TREE: 'tree',
-  OVERLAP: 'overlap'
+  OVERLAP: 'overlap',
+  ANIMATION: 'animation'
 };
 
 // Helper function to get profile description
@@ -34,6 +40,7 @@ const VisualizationsTab = () => {
   const [selectedConfigItem1, setSelectedConfigItem1] = useState('');
   const [selectedConfigItem2, setSelectedConfigItem2] = useState('');
   const [selectedConfigItem3, setSelectedConfigItem3] = useState('');
+  const [selectedConfigItem4, setSelectedConfigItem4] = useState('');
   const [sideComparisonEnabled, setSideComparisonEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -60,6 +67,9 @@ const VisualizationsTab = () => {
         setSelectedConfigItem1(data[0].key);
         setSelectedConfigItem2(data.length > 1 ? data[1].key : data[0].key);
         setSelectedConfigItem3(data.length > 2 ? data[2].key : data[0].key);
+        // For the animation view, pick risk_tolerance if available as it has the richest structure
+        const riskItem = data.find(item => item.key === 'risk_tolerance');
+        setSelectedConfigItem4(riskItem ? riskItem.key : data[0].key);
       }
       setLoading(false);
     } catch (error) {
@@ -280,6 +290,45 @@ const VisualizationsTab = () => {
               </div>
             </div>
             
+            {/* Resolution Animation Section */}
+            <div className="row mb-4">
+              <div className="col-12">
+                <div className="card">
+                  <div className="card-header bg-info text-white">
+                    <h5 className="mb-0">Configuration Resolution Animation</h5>
+                  </div>
+                  <div className="card-body">
+                    <p>
+                      This interactive animation demonstrates how configuration resolution works in real-time.
+                      It shows the step-by-step process of finding the appropriate configuration value based on object properties.
+                    </p>
+                    
+                    <div className="form-group mb-3">
+                      <label htmlFor="configItemSelect4" className="form-label">Select Configuration Item</label>
+                      <select 
+                        id="configItemSelect4" 
+                        className="form-select" 
+                        value={selectedConfigItem4}
+                        onChange={(e) => setSelectedConfigItem4(e.target.value)}
+                      >
+                        {configItems.map(item => (
+                          <option key={item.key} value={item.key}>
+                            {item.key} - {item.description}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {selectedConfigItem4 && (
+                      <div className="resolution-animation-container">
+                        <ResolutionAnimationView configItemKey={selectedConfigItem4} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             <div className="alert alert-info">
               <h5>Understanding the Visualizations</h5>
               <p>These visualizations show configuration data in different ways to help understand the hierarchical nature of configuration resolution:</p>
@@ -287,6 +336,7 @@ const VisualizationsTab = () => {
                 <li><strong>Cascade View:</strong> Shows how values cascade from global (bottom) to local (top) scopes along a linear axis.</li>
                 <li><strong>Hierarchy Tree:</strong> Shows configuration as a branching tree with the root node being the config item and branches showing the scope hierarchy.</li>
                 <li><strong>Scope Overlap:</strong> Visualizes how different scope types overlap and interact using a Venn diagram-like approach.</li>
+                <li><strong>Resolution Animation:</strong> Demonstrates the step-by-step process of resolving a configuration value based on object properties.</li>
               </ul>
               <p>By comparing different configurations and visualization types, you can gain insights into how the configuration system works and how values flow through the hierarchy.</p>
             </div>
